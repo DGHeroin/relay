@@ -22,7 +22,7 @@ func NewTCPRelay () Relay {
 func (t *tcpRelay) Serve(src, dst string) error {
     t.source = src
     t.target = dst
-    
+    log.Printf("Serve TCP: %v => %v", src, dst)
     if ln, err := net.Listen("tcp", src); err != nil {
         return err
     } else {

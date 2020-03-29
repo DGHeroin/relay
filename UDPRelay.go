@@ -25,14 +25,13 @@ type packet struct {
     data   []byte
     pc     net.PacketConn
     remote *net.UDPConn
-    
 }
 
 func (t *udpRelay) Serve(src, dst string) error {
     t.source = src
     t.target = dst
     t.remote = make(map[string]*packet)
-    
+    log.Printf("Serve UDP: %v => %v", src, dst)
     ln, err := net.ListenPacket("udp", src)
     if err != nil {
         log.Println(err)
