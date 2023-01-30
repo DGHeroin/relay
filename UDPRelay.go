@@ -12,10 +12,10 @@ var (
 type udpRelay struct {
     source string
     target string
-    remote map[string] *packet
+    remote map[string]*packet
 }
 
-func NewUDPRelay () Relay {
+func NewUDPRelay() Relay {
     r := udpRelay{}
     return &r
 }
@@ -48,7 +48,7 @@ func (t *udpRelay) Serve(src, dst string) error {
             pkt.data = buf[:n]
             go t.handlePacket(pkt)
         } else {
-            pkt = &packet{conn: conn, data:buf[:n], pc:ln}
+            pkt = &packet{conn: conn, data: buf[:n], pc: ln}
             t.remote[conn.String()] = pkt
             go t.handlePacket(pkt)
         }
@@ -56,15 +56,24 @@ func (t *udpRelay) Serve(src, dst string) error {
     return nil
 }
 
-func (t *udpRelay) handlePacket(p *packet){
+func (t *udpRelay) handlePacket(p *packet) {
     if p.remote == nil {
-        rAddr, err := net.ResolveUDPAddr("udp", t.target)
+        var (
+            rAddr  *net.UDPAddr
+            remote *net.UDPConn
+            err    error
+        )
+        rAddr, err = net.ResolveUDPAddr("udp", t.target)
         if err != nil {
             log.Println(err)
             t.die(p)
             return
         }
-        remote, err := net.DialUDP("udp", nil, rAddr)
+        if rAddr.IP.To4() != nil {
+            remote, err = net.DialUDP("udp", nil, rAddr)
+        } else {
+            remote, err = net.DialUDP("udp6", nil, rAddr)
+        }
         if err != nil {
             log.Println(err)
             t.die(p)
