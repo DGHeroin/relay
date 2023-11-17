@@ -3,11 +3,12 @@ name: Go
 on:
   push:
     branches: [ "master" ]
+    tags:
+      - '*'
   pull_request:
     branches: [ "master" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,18 +22,27 @@ jobs:
     - name: Build
       run: go build -v -o myapp ./cmd/relay
 
+    - name: Check if tag is pushed
+      id: check_tag
+      run: |
+        if [ "${{ github.ref_type }}" = "tag" ]; then
+          echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+        fi
+
     - name: Create Release
+      if: env.TAG_NAME != ''
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: Release ${{ env.TAG_NAME }}
         draft: false
         prerelease: false
 
     - name: Upload Release Asset
+      if: env.TAG_NAME != ''
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
