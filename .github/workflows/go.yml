@@ -20,7 +20,7 @@ jobs:
         go-version: '1.20'
 
     - name: Build
-      run: go build -v -o myapp ./cmd/relay
+      run: go build -v -o relay ./cmd/relay
 
     - name: Check if tag is pushed
       id: check_tag
@@ -48,6 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./myapp
-        asset_name: myapp
+        asset_path: ./relay
+        asset_name: relay
         asset_content_type: application/octet-stream
