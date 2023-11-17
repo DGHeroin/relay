@@ -21,10 +21,13 @@ jobs:
     - name: Build
       run: go build -v -o myapp ./cmd/relay
 
-    - name: Extract branch or tag name
+    - name: Extract branch and tag name
       shell: bash
-      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
+      run: |
+        BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+        TAG_NAME=$(git describe --tags --abbrev=0)
+        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
     - name: Create Release
       id: create_release
@@ -32,8 +35,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.extract_branch.outputs.branch }}
-        release_name: Release ${{ steps.extract_branch.outputs.branch }}
+        tag_name: ${{ env.TAG_NAME }}-${{ env.BRANCH_NAME }}
+        release_name: Release ${{ env.TAG_NAME }}-${{ env.BRANCH_NAME }}
         draft: false
         prerelease: false
 
