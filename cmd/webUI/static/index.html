@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Manager</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style> 
+    .card-toast {
+        transition: opacity 0.5s ease-in-out;
+        opacity: 0; /* 初始为透明 */
+    }
+
+    .card-toast.show {
+        display: block;
+        opacity: 1;
+    }
+    </style>
+
+</head>
+<body>
+<div class="container mt-5">
+    <h2>Relay</h2>
+    <button type="button" class="btn btn-success mb-3" id="addConfigBtn">New</button>
+    <div id="configCards" class="row"></div>
+</div>
+
+<!-- Config Modal -->
+<div class="modal fade" id="configModal" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="configModalLabel">Config</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <div class="form-group" id='id-group'>
+                        <label for="id">id</label>
+                        <input type="text" class="form-control" id="id" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="src">Source</label>
+                        <input type="text" class="form-control" id="src" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dst">Destination</label>
+                        <input type="text" class="form-control" id="dst" required>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="udp" checked="true">
+                        <label class="form-check-label" for="udp">UDP</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveConfigBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    var mockConfigs = [
+        { id: 'uuid-1', name:'#1', src: '192.168.0.1:53', dst: '10.0.0.1:53', udp: true },
+        { id: 'uuid-2', name:'#2', src: '192.168.0.2:80', dst: '10.0.0.2:80', udp: false }
+    ];
+
+    document.getElementById('addConfigBtn').addEventListener('click', function() {
+        // Clear form for new config
+        document.getElementById('id-group').style.display = 'none';
+        document.getElementById('configForm').reset();
+        $('#configModal').modal('show');
+    });
+    
+    document.getElementById('saveConfigBtn').addEventListener('click', function() {
+        // Logic to save the config (either update or create new)
+        // This is where you'd typically make an API call
+    
+        // For demonstration, just hide the modal
+        $('#configModal').modal('hide');
+        
+        // Optionally, refresh the list or add to the UI directly if new
+    });
+    
+    // debug数据
+    document.addEventListener('DOMContentLoaded', function() {
+
+    var configCardsContainer = document.getElementById('configCards');
+
+        // demo 
+        // 重新渲染配置列表
+        refreshConfigList();
+
+        // 绑定事件处理函数
+        bindEditButtons();
+        bindDeleteButtons();
+
+        reloadData();
+    });
+
+    document.getElementById('addConfigBtn').addEventListener('click', function() {
+        document.getElementById('configForm').reset();
+        $('#configModal').modal('show');
+    });
+
+    document.getElementById('saveConfigBtn').addEventListener('click', function() {
+        // 获取表单字段的值
+        var id   = document.getElementById('id').value;
+        var name = document.getElementById('name').value;
+        var src  = document.getElementById('src').value;
+        var dst  = document.getElementById('dst').value;
+        var udp  = document.getElementById('udp').checked; // 对于复选框，使用`checked`属性获取是否选中
+
+        // 构建配置对象
+        var config = {
+            id: id,
+            name: name,
+            src: src,
+            dst: dst,
+            udp: udp
+        };
+       
+
+        // 判断是新增还是编辑操作
+        var existingConfigIndex = mockConfigs.findIndex(c => c.id === config.id);
+        if (existingConfigIndex > -1) {
+            // 更新现有配置
+            mockConfigs[existingConfigIndex] = config;
+        } else {
+            // 添加新配置
+            config.id = newUUID()
+            mockConfigs.push(config);
+        }
+
+        // 重新渲染配置列表
+        refreshConfigList();
+        console.log("do save", config, mockConfigs);
+        $('#configModal').modal('hide');
+    });
+
+    // 根据最新的数据刷新UI
+    function refreshConfigList() {
+        var configCardsContainer = document.getElementById('configCards');
+        configCardsContainer.innerHTML = ''; // 清空当前的配置列表
+
+        mockConfigs.forEach(function(config) {
+            var cardHtml = `
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">${config.name}</h5>
+                            <p class="card-text">Source: ${config.src}</p>
+                            <p class="card-text">Destination: ${config.dst}</p>
+                            <p class="card-text">UDP: ${config.udp ? 'Yes' : 'No'}</p>
+                            <button class="btn btn-primary edit-config-btn" data-id="${config.id}">Edit</button>
+                            <button class="btn btn-danger delete-config-btn" data-id="${config.id}">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            configCardsContainer.insertAdjacentHTML('beforeend', cardHtml);
+        });
+
+        // 需要重新绑定编辑和删除按钮的事件处理函数
+        bindEditButtons();
+        bindDeleteButtons();
+    }
+
+    // 绑定编辑按钮事件的函数
+    function bindEditButtons() {
+        document.querySelectorAll('.edit-config-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                
+                var configId = this.getAttribute('data-id');
+                var config = mockConfigs.find(c => c.id == configId);
+                if (config) {
+                    document.getElementById('id').value  = config.id;
+                    document.getElementById('name').value  = config.name;
+                    document.getElementById('src').value = config.src;
+                    document.getElementById('dst').value = config.dst;
+                    document.getElementById('udp').checked = config.udp;
+                    document.getElementById('id-group').style.display = '';
+                    console.log(document.getElementById('id-group'))
+                    $('#configModal').modal('show');
+                }
+            });
+        });
+    
+    }
+
+    // 绑定删除按钮事件的函数
+    function bindDeleteButtons() {
+        document.querySelectorAll('.delete-config-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var configId = this.getAttribute('data-id');
+                console.log('delete id:',configId)
+
+                var configElement = this.closest('.col-md-4');
+
+                // 渐隐效果
+                configElement.style.transition = 'opacity 0.4s ease';
+                configElement.style.opacity = '0';
+
+                setTimeout(function() {
+                    var isDeleted = true;
+                    if (isDeleted){
+                        configElement.remove(); // 完全隐藏后从DOM中移除
+                        // 查找要删除的配置项在数组中的索引
+                        var index = mockConfigs.findIndex(config => config.id === configId);
+                        if (index > -1) {
+                            // 从数组中移除该配置项
+                            mockConfigs.splice(index, 1);
+
+                            // 重新渲染配置列表
+                            refreshConfigList();
+                        }
+                    } else {
+                        // 渐隐效果
+                        configElement.style.transition = 'opacity 0.4s ease';
+                        configElement.style.opacity = '1';
+                    }
+                    
+                }, 400); // 与渐隐效果的持续时间匹配
+            });
+        });
+
+    }
+    // 生成随机的 uuid
+    function newUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0,
+                v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+    });
+}
+    
+    // 
+    function reloadData() {
+        fetch('/api/list.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // TODO 验证 data
+                mockConfigs = data;
+
+                // 重新渲染配置列表
+                refreshConfigList();
+
+                // 绑定事件处理函数
+                bindEditButtons();
+                bindDeleteButtons();
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+            });
+    }
+
+    // end
+    </script>
+    
+</body>
+</html>
